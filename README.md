@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chess Game with Advanced AI & Castling</title>
-    <!-- Font: Lobster cho rank/file, Cinzel cho modal -->
+    <!-- Import font: Lobster cho trang, Great Vibes cho modal chiến thắng/thua, Cinzel cho modal phong hậu -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Lobster&family=Cinzel&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lobster&family=Great+Vibes&family=Cinzel&display=swap"
       rel="stylesheet"
     />
     <!-- Canvas-confetti cho hiệu ứng pháo hoa -->
@@ -19,14 +19,34 @@
         background: url("https://i.pinimg.com/736x/dc/e3/cb/dce3cb7b2daeb86ca5bd921ae06f3b2f.jpg")
           no-repeat center center fixed;
         background-size: cover;
-        font-family: Arial, sans-serif;
-        color: #fff;
+        font-family: "Lobster", cursive;
+        color: #000;
+      }
+      #logo-container {
+        text-align: center;
+        margin-top: 20px;
+      }
+      #logo-container img {
+        width: 100px;
       }
       #board-container {
         margin: 20px auto;
         width: 500px;
         position: relative;
         z-index: 1;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        color: #000;
+      }
+      #game-info {
+        font-size: 24px;
+        margin-bottom: 10px;
+        color: #000;
       }
       #board {
         margin: 0 auto;
@@ -44,6 +64,8 @@
         font-size: 36px;
         cursor: pointer;
         position: relative;
+        border-radius: 8px;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
       td.rank,
       td.file {
@@ -51,7 +73,7 @@
         border: none;
         font-family: "Lobster", cursive;
         font-size: 24px;
-        color: #fff;
+        color: #000;
         cursor: default;
       }
       .light-square {
@@ -63,7 +85,6 @@
       .selected {
         outline: 3px solid yellow;
       }
-      /* Marker hiển thị nước đi */
       .marker {
         position: absolute;
         width: 20px;
@@ -99,7 +120,7 @@
         color: black;
         text-shadow: 1px 1px 2px white;
       }
-      /* Modal chiến thắng */
+      /* Modal chiến thắng/thua */
       #modal {
         position: fixed;
         top: 0;
@@ -117,17 +138,16 @@
         background-color: #fff;
         padding: 30px;
         border-radius: 10px;
-        font-size: 24px;
-        font-family: "Cinzel", serif;
-        color: #333;
-        text-shadow: 1px 1px 2px #aaa;
+        font-size: 32px;
+        font-family: "Great Vibes", cursive;
+        color: red;
         animation: scaleIn 0.5s forwards;
         margin-bottom: 20px;
       }
       #play-again {
         padding: 10px 20px;
         font-size: 18px;
-        font-family: "Cinzel", serif;
+        font-family: "Lobster", cursive;
         cursor: pointer;
         border: none;
         border-radius: 5px;
@@ -178,9 +198,18 @@
       .promotion-option:hover {
         background-color: #ddd;
       }
+      #message {
+        margin-top: 20px;
+        font-size: 18px;
+        color: #000;
+      }
     </style>
   </head>
   <body>
+    <!-- Logo -->
+    <div id="logo-container">
+      <img src="https://i.postimg.cc/vB1ttNGV/logo.jpg" alt="Logo" />
+    </div>
     <div id="board-container">
       <h1>Chess Game with Advanced AI & Castling</h1>
       <div id="game-info">
@@ -189,13 +218,11 @@
       <div id="board"></div>
       <div id="message"></div>
     </div>
-
-    <!-- Modal chiến thắng -->
+    <!-- Modal chiến thắng/thua -->
     <div id="modal">
       <div id="modal-content"></div>
       <button id="play-again" onclick="restartGame()">Chơi Lại</button>
     </div>
-
     <!-- Modal phong hậu -->
     <div id="promotion-modal">
       <div id="promotion-board">
@@ -252,7 +279,7 @@
         constructor(color) {
           this.color = color;
           this.symbol = "";
-          this.hasMoved = false; // để hỗ trợ kiểm tra nhập thành
+          this.hasMoved = false;
         }
         validMove(start, end, board) {
           return false;
@@ -371,46 +398,47 @@
         validMove(start, end, board) {
           const dx = Math.abs(end[1] - start[1]);
           const dy = Math.abs(end[0] - start[0]);
-
-          // Kiểm tra nước đi tối đa 1 ô
+          // Nước đi 1 ô thông thường
           if (dx <= 1 && dy <= 1) {
             const target = board[end[0]][end[1]];
-            // Nếu ô đích có quân cùng màu => false
             if (target && target.color === this.color) return false;
-            // Có thể di chuyển (kể cả ăn quân đối phương)
             return true;
           }
-
-          // Kiểm tra nhập thành
+          // Nhập thành: cho phép cả cánh phải và trái
           if (!this.hasMoved && dy === 0 && dx === 2) {
-            // short castling (king side) dx=2
-            // or long castling (queen side) dx=2 but direction depends on end col
             const [sRow, sCol] = start;
             const [eRow, eCol] = end;
-            if (sRow !== eRow) return false; // phải cùng hàng
+            if (sRow !== eRow) return false;
             const row = sRow;
-            // short castling
+            // Kingside
             if (eCol === sCol + 2) {
-              // Rook ở sCol+3
               const rook = board[row][sCol + 3];
               if (!rook || !(rook instanceof Rook) || rook.hasMoved)
                 return false;
-              // kiểm tra ô giữa king và rook trống
               for (let c = sCol + 1; c < sCol + 3; c++) {
                 if (board[row][c] !== null) return false;
               }
-              // Tạm thời ok
+              for (let c = sCol; c <= sCol + 2; c++) {
+                const testBoard = cloneBoard(board);
+                testBoard[row][c] = new King(this.color);
+                testBoard[row][sCol] = null;
+                if (isKingInCheckForBoard(testBoard, this.color)) return false;
+              }
               return true;
             }
-            // long castling
+            // Queenside
             if (eCol === sCol - 2) {
-              // Rook ở sCol-4
               const rook = board[row][sCol - 4];
               if (!rook || !(rook instanceof Rook) || rook.hasMoved)
                 return false;
-              // kiểm tra ô giữa king và rook trống
               for (let c = sCol - 1; c > sCol - 4; c--) {
                 if (board[row][c] !== null) return false;
+              }
+              for (let c = sCol; c >= sCol - 2; c--) {
+                const testBoard = cloneBoard(board);
+                testBoard[row][c] = new King(this.color);
+                testBoard[row][sCol] = null;
+                if (isKingInCheckForBoard(testBoard, this.color)) return false;
               }
               return true;
             }
@@ -437,7 +465,7 @@
           return board;
         }
         setupBoard() {
-          // Trắng
+          // Quân trắng
           this.board[7] = [
             new Rook("white"),
             new Knight("white"),
@@ -451,7 +479,7 @@
           for (let i = 0; i < 8; i++) {
             this.board[6][i] = new Pawn("white");
           }
-          // Đen
+          // Quân đen
           this.board[0] = [
             new Rook("black"),
             new Knight("black"),
@@ -481,24 +509,17 @@
           const row = 8 - rank;
           return [row, col];
         }
-
-        // Hàm thực hiện nhập thành
         handleCastling(sRow, sCol, eRow, eCol) {
-          // short castling
           if (eCol === sCol + 2) {
-            // di chuyển rook
             this.board[eRow][eCol - 1] = this.board[eRow][eCol + 1];
             this.board[eRow][eCol + 1] = null;
             this.board[eRow][eCol - 1].hasMoved = true;
-          }
-          // long castling
-          else if (eCol === sCol - 2) {
+          } else if (eCol === sCol - 2) {
             this.board[eRow][eCol + 1] = this.board[eRow][eCol - 2];
             this.board[eRow][eCol - 2] = null;
             this.board[eRow][eCol + 1].hasMoved = true;
           }
         }
-
         movePiece(startPos, endPos) {
           if (this.gameOver) return false;
           const start = this.parsePosition(startPos);
@@ -510,17 +531,11 @@
           if (!piece || piece.color !== this.currentPlayer) return false;
           if (!piece.validMove([sRow, sCol], [eRow, eCol], this.board))
             return false;
-
-          // Clone board để kiểm tra
           const tempBoard = cloneBoard(this.board);
           tempBoard[eRow][eCol] = tempBoard[sRow][sCol];
           tempBoard[sRow][sCol] = null;
-          // Nếu nước đi làm Vua bị chiếu => invalid
-          if (isKingInCheckForBoard(tempBoard, this.currentPlayer)) {
+          if (isKingInCheckForBoard(tempBoard, this.currentPlayer))
             return false;
-          }
-
-          // Nếu là nhập thành
           if (
             piece instanceof King &&
             !piece.hasMoved &&
@@ -529,13 +544,9 @@
           ) {
             this.handleCastling(sRow, sCol, eRow, eCol);
           }
-
-          // Di chuyển chính thức
           this.board[eRow][eCol] = piece;
           this.board[sRow][sCol] = null;
           piece.hasMoved = true;
-
-          // Nếu là Tốt đến hàng cuối => phong hậu
           if (piece instanceof Pawn) {
             if (
               (piece.color === "white" && eRow === 0) ||
@@ -546,18 +557,12 @@
               return true;
             }
           }
-
-          // Kiểm tra mất Vua => gameOver
-          if (!this.findKing("white") || !this.findKing("black")) {
+          if (!this.findKing("white") || !this.findKing("black"))
             this.gameOver = true;
-          }
-
-          // Đổi lượt
           this.currentPlayer =
             this.currentPlayer === "white" ? "black" : "white";
           return true;
         }
-
         promotePawn(row, col, newPiece) {
           this.board[row][col] = newPiece;
         }
@@ -614,183 +619,169 @@
       }
 
       /******************************************
-       * AI: MINIMAX VỚI ALPHA-BETA PRUNING
+       * AI: MINIMAX VỚI ALPHA-BETA, TRANSPOSITION TABLE, & QUIESCENCE SEARCH
        ******************************************/
-      const AI_MAX_DEPTH = 3; // Độ sâu cố định => vừa nhanh vừa đủ thông minh
+      const AI_MAX_DEPTH = 3;
+      let transpositionTable = {};
 
-      function generateMoves(board, color) {
-        const moves = [];
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 8; j++) {
-            const piece = board[i][j];
-            if (piece && piece.color === color) {
-              for (let m = 0; m < 8; m++) {
-                for (let n = 0; n < 8; n++) {
-                  if (piece.validMove([i, j], [m, n], board)) {
-                    const newBoard = cloneBoard(board);
-                    newBoard[m][n] = newBoard[i][j];
-                    newBoard[i][j] = null;
-                    if (!isKingInCheckForBoard(newBoard, color)) {
-                      moves.push({ start: [i, j], end: [m, n] });
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        return moves;
+      function boardToString(board) {
+        return board
+          .map((row) =>
+            row
+              .map((piece) => {
+                if (!piece) return ".";
+                return piece.symbol + (piece.hasMoved ? "1" : "0");
+              })
+              .join("")
+          )
+          .join("\n");
       }
 
-      function evaluateBoard(board) {
-        let score = 0;
-        const values = {
-          Pawn: 1,
-          Knight: 3,
-          Bishop: 3,
-          Rook: 5,
-          Queen: 9,
-          King: 10000,
-        };
-        const center = [
-          [3, 3],
-          [3, 4],
-          [4, 3],
-          [4, 4],
-        ];
-        // Tính điểm dựa trên giá trị quân + bonus
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 8; j++) {
-            const piece = board[i][j];
-            if (piece) {
-              const type = piece.constructor.name;
-              let val = values[type] || 0;
-              // Bonus vị trí trung tâm
-              if (center.some((pos) => pos[0] === i && pos[1] === j))
-                val += 0.5;
-              // Giảm điểm nếu King ở biên
-              if (
-                piece instanceof King &&
-                (i === 0 || i === 7 || j === 0 || j === 7)
-              )
-                val -= 2;
-              // Tính vào score
-              score += piece.color === "black" ? val : -val;
-            }
-          }
+      function quiescence(board, alpha, beta, maximizingPlayer) {
+        // Khi không có các nước “tàn cuộc” (volatile captures) mở rộng, trả về đánh giá board
+        const standPat = evaluateBoard(board);
+        if (maximizingPlayer) {
+          if (standPat >= beta) return beta;
+          if (alpha < standPat) alpha = standPat;
+        } else {
+          if (standPat <= alpha) return alpha;
+          if (beta > standPat) beta = standPat;
         }
-        return score;
+        const moves = generateMoves(
+          board,
+          maximizingPlayer ? "black" : "white"
+        ).filter((m) => {
+          // Chỉ xét các nước bắt quân để mở rộng tìm kiếm
+          const target = board[m.end[0]][m.end[1]];
+          return target !== null;
+        });
+        for (const move of moves) {
+          const newBoard = cloneBoard(board);
+          newBoard[move.end[0]][move.end[1]] =
+            newBoard[move.start[0]][move.start[1]];
+          newBoard[move.start[0]][move.start[1]] = null;
+          const score = -quiescence(newBoard, -beta, -alpha, !maximizingPlayer);
+          if (score >= beta) return beta;
+          if (score > alpha) alpha = score;
+        }
+        return alpha;
       }
 
-      function minimax(board, depth, alpha, beta, maximizingPlayer) {
-        const whiteKing = board.some((row) =>
-          row.some((p) => p instanceof King && p.color === "white")
-        );
-        const blackKing = board.some((row) =>
-          row.some((p) => p instanceof King && p.color === "black")
-        );
-        // Nếu hết quân King hoặc hết độ sâu => đánh giá
-        if (depth === 0 || !whiteKing || !blackKing) {
-          return evaluateBoard(board);
+      function minimaxTT(board, depth, alpha, beta, maximizingPlayer) {
+        const boardKey = boardToString(board);
+        if (transpositionTable[boardKey] !== undefined)
+          return transpositionTable[boardKey];
+        if (depth === 0) {
+          const evalVal = quiescence(board, alpha, beta, maximizingPlayer);
+          transpositionTable[boardKey] = evalVal;
+          return evalVal;
         }
-
         if (maximizingPlayer) {
           let maxEval = -Infinity;
           const moves = generateMoves(board, "black");
-          // Move ordering đơn giản: sắp xếp nước đi theo evaluateBoard
+          // Move ordering: ưu tiên nước ăn quân
           moves.sort((a, b) => {
-            const newBoardA = cloneBoard(board);
-            newBoardA[a.end[0]][a.end[1]] = newBoardA[a.start[0]][a.start[1]];
-            newBoardA[a.start[0]][a.start[1]] = null;
-            const newBoardB = cloneBoard(board);
-            newBoardB[b.end[0]][b.end[1]] = newBoardB[b.start[0]][b.start[1]];
-            newBoardB[b.start[0]][b.start[0]] = null;
-            return evaluateBoard(newBoardB) - evaluateBoard(newBoardA);
+            const targetA = board[a.end[0]][a.end[1]];
+            const targetB = board[b.end[0]][b.end[1]];
+            return (targetB ? 1 : 0) - (targetA ? 1 : 0);
           });
           for (const move of moves) {
             const newBoard = cloneBoard(board);
             newBoard[move.end[0]][move.end[1]] =
               newBoard[move.start[0]][move.start[1]];
             newBoard[move.start[0]][move.start[1]] = null;
-            const evalScore = minimax(newBoard, depth - 1, alpha, beta, false);
+            const evalScore = minimaxTT(
+              newBoard,
+              depth - 1,
+              alpha,
+              beta,
+              false
+            );
             maxEval = Math.max(maxEval, evalScore);
             alpha = Math.max(alpha, evalScore);
             if (beta <= alpha) break;
           }
+          transpositionTable[boardKey] = maxEval;
           return maxEval;
         } else {
           let minEval = Infinity;
           const moves = generateMoves(board, "white");
           moves.sort((a, b) => {
-            const newBoardA = cloneBoard(board);
-            newBoardA[a.end[0]][a.end[1]] = newBoardA[a.start[0]][a.start[1]];
-            newBoardA[a.start[0]][a.start[1]] = null;
-            const newBoardB = cloneBoard(board);
-            newBoardB[b.end[0]][b.end[1]] = newBoardB[b.start[0]][b.start[1]];
-            newBoardB[b.start[0]][b.start[1]] = null;
-            return evaluateBoard(newBoardB) - evaluateBoard(newBoardA);
+            const targetA = board[a.end[0]][a.end[1]];
+            const targetB = board[b.end[0]][b.end[1]];
+            return (targetA ? 1 : 0) - (targetB ? 1 : 0);
           });
           for (const move of moves) {
             const newBoard = cloneBoard(board);
             newBoard[move.end[0]][move.end[1]] =
               newBoard[move.start[0]][move.start[1]];
             newBoard[move.start[0]][move.start[1]] = null;
-            const evalScore = minimax(newBoard, depth - 1, alpha, beta, true);
+            const evalScore = minimaxTT(newBoard, depth - 1, alpha, beta, true);
             minEval = Math.min(minEval, evalScore);
             beta = Math.min(beta, evalScore);
             if (beta <= alpha) break;
           }
+          transpositionTable[boardKey] = minEval;
           return minEval;
         }
       }
 
-      /******************************************
-       * AI CHO QUÂN ĐEN
-       ******************************************/
+      function iterativeDeepening(board, maxDepth, maximizingPlayer) {
+        let bestMove = null;
+        for (let depth = 1; depth <= maxDepth; depth++) {
+          let bestEval = maximizingPlayer ? -Infinity : Infinity;
+          const moves = generateMoves(
+            board,
+            maximizingPlayer ? "black" : "white"
+          );
+          for (const move of moves) {
+            const newBoard = cloneBoard(board);
+            newBoard[move.end[0]][move.end[1]] =
+              newBoard[move.start[0]][move.start[1]];
+            newBoard[move.start[0]][move.start[1]] = null;
+            const evalScore = minimaxTT(
+              newBoard,
+              depth - 1,
+              -Infinity,
+              Infinity,
+              !maximizingPlayer
+            );
+            if (maximizingPlayer) {
+              if (evalScore > bestEval) {
+                bestEval = evalScore;
+                bestMove = move;
+              }
+            } else {
+              if (evalScore < bestEval) {
+                bestEval = evalScore;
+                bestMove = move;
+              }
+            }
+          }
+          console.log("Depth:", depth, "Best Eval:", bestEval);
+        }
+        return bestMove;
+      }
+
+      // Cập nhật hàm aiMove sử dụng iterative deepening
       function aiMove() {
         if (game.currentPlayer !== "black" || game.gameOver) return;
-        const moves = generateMoves(game.board, "black");
-        if (moves.length === 0) return;
-        let bestEval = -Infinity;
-        let bestMove = moves[0];
-        // Move ordering
-        moves.sort((a, b) => {
-          const boardA = cloneBoard(game.board);
-          boardA[a.end[0]][a.end[1]] = boardA[a.start[0]][a.start[1]];
-          boardA[a.start[0]][a.start[1]] = null;
-          const boardB = cloneBoard(game.board);
-          boardB[b.end[0]][b.end[1]] = boardB[b.start[0]][b.start[1]];
-          boardB[b.start[0]][b.start[1]] = null;
-          return evaluateBoard(boardB) - evaluateBoard(boardA);
-        });
-
-        for (const move of moves) {
-          const newBoard = cloneBoard(game.board);
-          newBoard[move.end[0]][move.end[1]] =
-            newBoard[move.start[0]][move.start[1]];
-          newBoard[move.start[0]][move.start[1]] = null;
-          const evalScore = minimax(
-            newBoard,
-            AI_MAX_DEPTH,
-            -Infinity,
-            Infinity,
-            false
+        transpositionTable = {};
+        const bestMove = iterativeDeepening(game.board, 3, true);
+        if (bestMove) {
+          const startPos = game.toNotation(
+            bestMove.start[0],
+            bestMove.start[1]
           );
-          if (evalScore > bestEval) {
-            bestEval = evalScore;
-            bestMove = move;
+          const endPos = game.toNotation(bestMove.end[0], bestMove.end[1]);
+          game.movePiece(startPos, endPos);
+          renderBoard();
+          if (!game.findKing("white") || !game.findKing("black")) {
+            game.gameOver = true;
+            if (!game.findKing("white"))
+              showModal("Chúc mừng đội đen đã chiến thắng!");
+            else showModal("Chúc mừng đội trắng đã chiến thắng!");
           }
-        }
-
-        const startPos = game.toNotation(bestMove.start[0], bestMove.start[1]);
-        const endPos = game.toNotation(bestMove.end[0], bestMove.end[1]);
-        game.movePiece(startPos, endPos);
-        renderBoard();
-        if (!game.findKing("white") || !game.findKing("black")) {
-          game.gameOver = true;
-          if (!game.findKing("white"))
-            showModal("Chúc mừng đội đen đã chiến thắng!");
-          else showModal("Chúc mừng đội trắng đã chiến thắng!");
         }
       }
 
@@ -811,7 +802,6 @@
         for (let i = 0; i < 8; i++) {
           for (let j = 0; j < 8; j++) {
             if (piece.validMove([sRow, sCol], [i, j], game.board)) {
-              // Kiểm tra an toàn cho Vua
               const tempBoard = cloneBoard(game.board);
               tempBoard[i][j] = tempBoard[sRow][sCol];
               tempBoard[sRow][sCol] = null;
@@ -855,8 +845,6 @@
               selectedSquare[1] === j
             )
               cellClasses.push("selected");
-
-            // Đánh dấu ô Vua đang bị chiếu
             if (piece instanceof King) {
               const kingPos = game.findKing(piece.color);
               if (kingPos && kingPos[0] === i && kingPos[1] === j) {
@@ -867,16 +855,14 @@
                   cellClasses.push("in-check");
               }
             }
-
             let markerHTML = "";
             const lm = legalMoves.find((m) => m.row === i && m.col === j);
             if (lm) {
-              if (lm.type === "move")
-                markerHTML = '<div class="marker legal-marker"></div>';
-              else if (lm.type === "capture")
-                markerHTML = '<div class="capture-overlay"></div>';
+              markerHTML =
+                lm.type === "move"
+                  ? '<div class="marker legal-marker"></div>'
+                  : '<div class="capture-overlay"></div>';
             }
-
             let displayPiece = "";
             if (piece) {
               displayPiece =
@@ -886,10 +872,10 @@
             }
             html += `<td class="${cellClasses.join(
               " "
-            )}" onclick="handleCellClick(${i}, ${j})">
-                    ${markerHTML}
-                    ${displayPiece}
-                   </td>`;
+            )}" onclick="handleCellClick(${i},${j})">
+                        ${markerHTML}
+                        ${displayPiece}
+                     </td>`;
           }
           html += "</tr>";
         }
@@ -902,11 +888,7 @@
         boardDiv.innerHTML = html;
         document.getElementById("current-player").innerText =
           game.currentPlayer;
-
-        // Kiểm tra checkmate
         if (checkCheckmate()) return;
-
-        // Nếu đến lượt AI (đen) => di chuyển
         if (game.currentPlayer === "black" && !game.gameOver) {
           setTimeout(aiMove, 500);
         }
@@ -931,20 +913,19 @@
         modal.style.display = "flex";
         startFireworks();
       }
+
       function hideModal() {
         const modal = document.getElementById("modal");
         modal.style.display = "none";
         stopFireworks();
       }
+
       function startFireworks() {
         fireworksInterval = setInterval(() => {
-          confetti({
-            particleCount: 100,
-            spread: 100,
-            origin: { y: 0.6 },
-          });
+          confetti({ particleCount: 100, spread: 100, origin: { y: 0.6 } });
         }, 500);
       }
+
       function stopFireworks() {
         if (fireworksInterval) {
           clearInterval(fireworksInterval);
@@ -956,10 +937,12 @@
         const promotionModal = document.getElementById("promotion-modal");
         promotionModal.style.display = "flex";
       }
+
       function hidePromotionModal() {
         const promotionModal = document.getElementById("promotion-modal");
         promotionModal.style.display = "none";
       }
+
       function selectPromotion(choice) {
         let newPiece;
         switch (choice) {
@@ -974,7 +957,6 @@
             break;
           default:
             newPiece = new Queen(pendingPromotion.color);
-            break;
         }
         game.promotePawn(pendingPromotion.row, pendingPromotion.col, newPiece);
         pendingPromotion = null;
